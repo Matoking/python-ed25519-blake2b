@@ -4,7 +4,7 @@ from . import _ed25519
 BadSignatureError = _ed25519.BadSignatureError
 
 def create_keypair(entropy=os.urandom):
-    SEEDLEN = int(_ed25519.SECRETKEYBYTES/2)
+    SEEDLEN = int(_ed25519.SECRETKEYBYTES)
     assert SEEDLEN == 32
     seed = entropy(SEEDLEN)
     sk = SigningKey(seed)
@@ -81,13 +81,15 @@ class SigningKey(object):
         if encoding is not None:
             sk_s = from_ascii(sk_s, encoding=encoding)
         if len(sk_s) == 32:
-            # create from seed
-            vk_s, sk_s = _ed25519.publickey(sk_s)
+            # create public key from secret key
+            vk_s = _ed25519.derive_public_from_secret(sk_s)
         else:
             if len(sk_s) != 32+32:
                 raise ValueError("SigningKey takes 32-byte seed or 64-byte string")
-        self.sk_s = sk_s # seed+pubkey
-        self.vk_s = sk_s[32:] # just pubkey
+            else:
+                sk_s, vk_s = sk_s[:32], sk_s[32:]
+        self.sk_s = sk_s  # seed
+        self.vk_s = vk_s
 
     def to_bytes(self, prefix=""):
         if not isinstance(prefix, bytes):
@@ -179,13 +181,13 @@ class VerifyingKey(object):
 
 def selftest():
     message = b"crypto libraries should always test themselves at powerup"
-    sk = SigningKey(b"priv0-VIsfn5OFGa09Un2MR6Hm7BQ5++xhcQskU2OGXG8jSJl4cWLZrRrVcSN2gVYMGtZT+3354J5jfmqAcuRSD9KIyg",
+    sk = SigningKey(b"priv0-sQHl0NVcrc/O6lsHe2DXb71pq1NjMFAG7Q/I74VGnIk=",
                     prefix="priv0-", encoding="base64")
-    vk = VerifyingKey(b"pub0-eHFi2a0a1XEjdoFWDBrWU/t9+eCeY35qgHLkUg/SiMo",
+    vk = VerifyingKey(b"pub0-QM20hii2QB4EfChxfvzxgCPDnIpU5u/ZTgXUvr0oyVg=",
                       prefix="pub0-", encoding="base64")
     assert sk.get_verifying_key() == vk
     sig = sk.sign(message, prefix="sig0-", encoding="base64")
-    assert sig == b"sig0-E/QrwtSF52x8+q0l4ahA7eJbRKc777ClKNg217Q0z4fiYMCdmAOI+rTLVkiFhX6k3D+wQQfKdJYMxaTUFfv1DQ", sig
+    assert sig == b"sig0-OO3brWHJzzl6JGkNl/4l63pOiEYhQugdd3Q4hK4QftJbCwV7lTKN8J1hDDXGMOr6Q2vz7Zksu+TWu6ABNDJfBA", sig
     vk.verify(sig, message, prefix="sig0-", encoding="base64")
 
 selftest()

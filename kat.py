@@ -5,7 +5,7 @@ q = 2**255 - 19
 l = 2**252 + 27742317777372353535851937790883648493
 
 def H(m):
-  return hashlib.sha512(m).digest()
+  return hashlib.blake2b(m).digest()
 
 def expmod(b,e,m):
   if e == 0: return 1

@@ -58,6 +58,30 @@ ed25519_publickey(PyObject *self, PyObject *args)
                          signkey, SECRETKEYBYTES);
 }
 
+PyDoc_STRVAR(ed25519_derive_public_from_secret_doc,
+"derive_public_from_secret(secret_key)\n\
+\n\
+Accepts a 32-byte secret key. Return a 32-byte public verifying key.");
+
+static PyObject *
+ed25519_derive_public_from_secret(PyObject *self, PyObject *args)
+{
+    unsigned char verfkey[PUBLICKEYBYTES];
+    unsigned char *signkey; Py_ssize_t signkey_len;
+
+    if (!PyArg_ParseTuple(args, y"#", &signkey, &signkey_len))
+        return NULL;
+
+    if (signkey_len != SECRETKEYBYTES) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Private signing keys are 32 byte strings");
+        return NULL;
+    }
+
+    derive_public_from_secret(verfkey, signkey);
+    return Py_BuildValue(y"#", verfkey, PUBLICKEYBYTES);
+}
+
 PyDoc_STRVAR(ed25519_sign_doc,
 "sign(message, signing_key)\n\
 \n\
@@ -82,9 +106,9 @@ ed25519_sign(PyObject *self, PyObject *args)
                           &msg, &msg_len,
                           &signkey, &signkey_len))
         return NULL;
-    if (signkey_len != SECRETKEYBYTES) { // 64
+    if (signkey_len != SECRETKEYBYTES) { // 32
         PyErr_SetString(PyExc_TypeError,
-                        "Private signing keys are 64 byte strings");
+                        "Private signing keys are 32 byte strings");
         return NULL;
     }
     sig_and_msg = PyMem_Malloc(msg_len + SIGNATUREBYTES);
@@ -155,6 +179,9 @@ ed25519_open(PyObject *self, PyObject *args)
 /* List of functions defined in the module */
 
 static PyMethodDef ed25519_methods[] = {
+    {"derive_public_from_secret",
+     ed25519_derive_public_from_secret,
+     METH_VARARGS, ed25519_derive_public_from_secret_doc},
     {"publickey",  ed25519_publickey,  METH_VARARGS, ed25519_publickey_doc},
     {"sign",  ed25519_sign,  METH_VARARGS, ed25519_sign_doc},
     {"open", ed25519_open, METH_VARARGS, ed25519_open_doc},
@@ -199,7 +226,7 @@ init_ed25519(void)
 
     /* Add some symbolic constants to the module */
     if (BadSignatureError == NULL) {
-        BadSignatureError = PyErr_NewException("ed25519.BadSignatureError",
+        BadSignatureError = PyErr_NewException("ed25519_blake2b.BadSignatureError",
                                                NULL, NULL);
         if (BadSignatureError == NULL) {
 #if PY_MAJOR_VERSION >= 3

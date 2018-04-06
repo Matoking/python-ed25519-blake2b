@@ -1,7 +1,13 @@
-Python Bindings to the Ed25519 Digital Signature System
-=======================================================
+Python Bindings to the Ed25519 Digital Signature System (BLAKE2b fork)
+======================================================================
 
-[![Build Status](https://travis-ci.org/warner/python-ed25519.png?branch=master)](https://travis-ci.org/warner/python-ed25519)
+[![Build Status](https://travis-ci.org/Matoking/python-ed25519-blake2b.png?branch=master)](https://travis-ci.org/Matoking/python-ed25519-blake2b)
+
+This fork of [python-ed25519](https://github.com/warner/python-ed25519)
+uses BLAKE2b instead of SHA512 as a hash algorithm. This allows the library
+to create and verify signatures used in [NANO](https://nano.org). Some of the
+documentation in the repository may be out-of-date and refer to the
+original SHA512-based implementation.
 
 This package provides python bindings to a C implementation of the Ed25519
 public-key signature system [1][]. The C code is copied from the SUPERCOP
@@ -22,8 +28,8 @@ and RSA-3072.
 
 This library includes a copy of all the C code necessary. You will need
 Python 2.x (2.6 or later) or Python 3.x (3.3 or later) and a C compiler. The
-tests are run automatically against python 2.6, 2.7, 3.3, 3.4, and pypy
-versions of Python 2.7 and 3.2.
+tests are run automatically against python 2.7, 3.3, 3.4, 3.5, 3.6, 3.7 and pypy
+versions of Python 2 and 3.
 
 
 ## Speed and Key Sizes
@@ -122,8 +128,8 @@ random data from os.urandom() (although you can provide an alternative
 entropy source with the entropy= argument):
 
 ```python
-import ed25519
-signing_key, verifying_key = ed25519.create_keypair()
+import ed25519_blake2b
+signing_key, verifying_key = ed25519_blake2b.create_keypair()
 open("my-secret-key","wb").write(signing_key.to_bytes())
 vkey_hex = verifying_key.to_ascii(encoding="hex")
 print "the public key is", vkey_hex
@@ -138,16 +144,16 @@ later), you can store just the 32 byte seed instead:
 open("my-secret-seed","wb").write(signing_key.to_seed())
 ```
 
-The signing key is an instance of the ed25519.SigningKey class. To
+The signing key is an instance of the ed25519_blake2b.SigningKey class. To
 reconstruct this instance from a serialized form, the constructor accepts the
 output of either `.to_bytes()` or `.to_seed()`:
 
 ```python
 keydata = open("my-secret-key","rb").read()
-signing_key = ed25519.SigningKey(keydata)
+signing_key = ed25519_blake2b.SigningKey(keydata)
  
 seed = open("my-secret-seed","rb").read()
-signing_key2 = ed25519.SigningKey(seed)
+signing_key2 = ed25519_blake2b.SigningKey(seed)
 assert signing_key == signing_key2
 ```
 
@@ -159,7 +165,7 @@ seed:
 import os, hashlib
 master = os.urandom(87)
 seed = hashlib.sha256(master).digest()
-signing_key = ed25519.SigningKey(seed)
+signing_key = ed25519_blake2b.SigningKey(seed)
 ```
 
 Once you have the SigningKey instance, use its .sign() method to sign a
@@ -172,16 +178,16 @@ print "sig is:", sig
 ```
 
 On the verifying side, the receiver first needs to construct a
-ed25519.VerifyingKey instance from the serialized string, then use its
+ed25519_blake2b.VerifyingKey instance from the serialized string, then use its
 .verify() method on the signature and message:
 
 ```python
 vkey_hex = b"1246b84985e1ab5f83f4ec2bdf271114666fd3d9e24d12981a3c861b9ed523c6"
-verifying_key = ed25519.VerifyingKey(vkey_hex, encoding="hex")
+verifying_key = ed25519_blake2b.VerifyingKey(vkey_hex, encoding="hex")
 try:
   verifying_key.verify(sig, b"hello world", encoding="base64")
   print "signature is good"
-except ed25519.BadSignatureError:
+except ed25519_blake2b.BadSignatureError:
   print "signature is bad!"
 ```
 
@@ -191,7 +197,7 @@ hold just 32 bytes of data and derive everything else from that:
 
 ```python
 keydata = open("my-secret-seed","rb").read()
-signing_key = ed25519.SigningKey(keydata)
+signing_key = ed25519_blake2b.SigningKey(keydata)
 verifying_key = signing_key.get_verifying_key()
 ```
 
@@ -203,7 +209,7 @@ There is also a basic command-line keygen/sign/verify tool in bin/edsig .
 The complete API is summarized here:
 
 ```python
-sk,vk = ed25519.create_keypair(entropy=os.urandom)
+sk,vk = ed25519_blake2b.create_keypair(entropy=os.urandom)
 vk = sk.get_verifying_key()
  
 signature = sk.sign(message, prefix=, encoding=)
